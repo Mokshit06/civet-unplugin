@@ -1,10 +1,10 @@
-import CivetPlugin from '../../dist/index.js';
+const { civetPlugin } = require('../../dist/index.js');
 
-export default {
+module.exports = {
   input: 'main.civet',
   output: {
     dir: 'dist',
     format: 'cjs',
   },
-  plugins: [CivetPlugin.rollup({})],
+  plugins: [civetPlugin.rollup({})],
 };
