@@ -23,6 +23,8 @@ interface PluginOptions {
 const isCivet = (id: string) => /\.civet$/.test(id);
 const isCivetTranspiled = (id: string) => /\.civet\.(m?)(j|t)s(x?)$/.test(id);
 
+const removeNullChar = (id: string) => (id.startsWith('\0') ? id.slice(1) : id);
+
 export const civetPlugin = createUnplugin((options: PluginOptions = {}) => {
   const stripTypes = options.stripTypes ?? !options.outputTransformerPlugin;
   const outExt = options.outputExtension ?? '.js';
@@ -33,13 +35,19 @@ export const civetPlugin = createUnplugin((options: PluginOptions = {}) => {
     resolveId(id, importer) {
       if (!isCivet(id)) return null;
 
-      return '\0' + path.resolve(path.dirname(importer ?? ''), id) + outExt;
+      const absoluteId = path.isAbsolute(id)
+        ? id
+        : path.resolve(removeNullChar(path.dirname(importer ?? '')), id);
+      const absolutePath = absoluteId + outExt;
+
+      return '\0' + absolutePath;
     },
     loadInclude(id) {
       return isCivetTranspiled(id);
     },
     async load(id) {
       if (!isCivetTranspiled(id)) return null;
+
       // remove \0 and .js/jsx
       const filename = id.slice(1, -outExt.length);
 

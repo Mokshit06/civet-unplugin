@@ -3,5 +3,7 @@
 export default function Counter()
   [count, setCount] := createSignal 0
 
+  console.log "rendering"
+
   <button onClick={=>setCount(count() + 1)}>
     {count}
