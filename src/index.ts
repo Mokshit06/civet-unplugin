@@ -2,6 +2,7 @@ import { TransformResult, createUnplugin } from 'unplugin';
 import civet from '@danielx/civet';
 import * as fs from 'fs';
 import { load as loadHTML } from 'cheerio';
+import path from 'path';
 
 interface PluginOptions {
   outputTransformerPlugin?:
@@ -20,20 +21,29 @@ interface PluginOptions {
 }
 
 const isCivet = (id: string) => /\.civet$/.test(id);
+const isCivetTranspiled = (id: string) => /\.civet\.(m?)(j|t)s(x?)$/.test(id);
 
 export const civetPlugin = createUnplugin((options: PluginOptions = {}) => {
   const stripTypes = options.stripTypes ?? !options.outputTransformerPlugin;
+  const outExt = options.outputExtension ?? '.js';
 
   return {
     name: 'unplugin-civet',
     enforce: 'pre',
-    loadInclude(id) {
-      return isCivet(id);
-    },
-    async load(id) {
+    resolveId(id, importer) {
       if (!isCivet(id)) return null;
 
-      const code = await fs.promises.readFile(id, 'utf-8');
+      return '\0' + path.resolve(path.dirname(importer ?? ''), id) + outExt;
+    },
+    loadInclude(id) {
+      return isCivetTranspiled(id);
+    },
+    async load(id) {
+      if (!isCivetTranspiled(id)) return null;
+      // remove \0 and .js/jsx
+      const filename = id.slice(1, -outExt.length);
+
+      const code = await fs.promises.readFile(filename, 'utf-8');
 
       // Ideally this should have been done in a `transform` step
       // but for some reason, webpack seems to be running them in the order
