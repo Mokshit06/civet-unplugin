@@ -1,7 +1,7 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  entryPoints: ['src/index.ts', 'src/rollup-dts.ts'],
+  entryPoints: ['src/index.ts'],
   outDir: 'dist',
   format: ['esm', 'cjs'],
   dts: true,

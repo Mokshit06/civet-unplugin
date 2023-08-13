@@ -35,8 +35,9 @@ const isCivetTranspiled = (id: string) => /\.civet\.(m?)(j|t)s(x?)$/.test(id);
 
 export const civetPlugin = createUnplugin((options: PluginOptions = {}) => {
   const stripTypes =
-    options.stripTypes ?? options.dts ?? !options.outputTransformerPlugin;
+    options.stripTypes ?? !options.dts ?? !options.outputTransformerPlugin;
   const outExt = options.outputExtension ?? (stripTypes ? '.jsx' : '.tsx');
+
   let fsMap: Map<string, string> = new Map();
   let compilerOptions: any;
 
@@ -90,13 +91,23 @@ export const civetPlugin = createUnplugin((options: PluginOptions = {}) => {
 
         const sourceFiles = program.getSourceFiles();
 
-        for (const sourceFile of sourceFiles) {
-          program.emit(sourceFile, (filePath, content) =>
-            this.emitFile({
-              source: content,
-              fileName: path.relative(process.cwd(), filePath),
-              type: 'asset',
-            })
+        console.log('\ngenerating');
+        // console.log([...fsMap.keys()]);
+        for (const file of fsMap.keys()) {
+          const sourceFile = program.getSourceFile(file)!;
+          console.log(file);
+          console.log(sourceFile.text);
+          program.emit(
+            sourceFile,
+            (filePath, content) => {
+              console.log('EMITTING');
+              this.emitFile({
+                source: content,
+                fileName: path.relative(process.cwd(), filePath),
+                type: 'asset',
+              });
+            },
+            undefined
           );
         }
       }
