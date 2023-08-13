@@ -34,7 +34,8 @@ const isCivet = (id: string) => /\.civet$/.test(id);
 const isCivetTranspiled = (id: string) => /\.civet\.(m?)(j|t)s(x?)$/.test(id);
 
 export const civetPlugin = createUnplugin((options: PluginOptions = {}) => {
-  const stripTypes = options.stripTypes ?? !options.outputTransformerPlugin;
+  const stripTypes =
+    options.stripTypes ?? options.dts ?? !options.outputTransformerPlugin;
   const outExt = options.outputExtension ?? (stripTypes ? '.jsx' : '.tsx');
   let fsMap: Map<string, string> = new Map();
   let compilerOptions: any;
