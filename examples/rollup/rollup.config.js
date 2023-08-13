@@ -1,5 +1,4 @@
 const { civetPlugin } = require('../../dist/index.js');
-const { civetDtsPlugin } = require('../../dist/rollup-dts.js');
 
 module.exports = {
   input: 'main.civet',
@@ -10,7 +9,6 @@ module.exports = {
   plugins: [
     civetPlugin.rollup({
       dts: true,
-      stripTypes: false,
     }),
   ],
 };
