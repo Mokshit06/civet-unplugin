@@ -1,4 +1,5 @@
 const { civetPlugin } = require('../../dist/index.js');
+const { civetDtsPlugin } = require('../../dist/rollup-dts.js');
 
 module.exports = {
   input: 'main.civet',
@@ -6,5 +7,11 @@ module.exports = {
     dir: 'dist',
     format: 'cjs',
   },
-  plugins: [civetPlugin.rollup({})],
+  plugins: [
+    // require('@rollup/plugin-typescript')(),
+
+    civetPlugin.rollup({ stripTypes: false, outputExtension: '.ts' }),
+    civetDtsPlugin({ outDir: 'dist' }),
+    // require('rollup-plugin-dts').default(),
+  ],
 };

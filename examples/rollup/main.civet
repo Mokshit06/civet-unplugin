@@ -1,3 +1,3 @@
-{a} from "./module.civet"
+{a} from "./utils/module.civet"
 
-console.log a
+export b = a
