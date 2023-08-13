@@ -8,10 +8,9 @@ module.exports = {
     format: 'cjs',
   },
   plugins: [
-    // require('@rollup/plugin-typescript')(),
-
-    civetPlugin.rollup({ stripTypes: false, outputExtension: '.ts' }),
-    civetDtsPlugin({ outDir: 'dist' }),
-    // require('rollup-plugin-dts').default(),
+    civetPlugin.rollup({
+      dts: true,
+      stripTypes: false,
+    }),
   ],
 };

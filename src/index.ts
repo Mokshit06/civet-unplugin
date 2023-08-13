@@ -2,8 +2,19 @@ import { TransformResult, createUnplugin } from 'unplugin';
 import civet from '@danielx/civet';
 import * as fs from 'fs';
 import path from 'path';
+import ts from 'typescript';
+import * as tsvfs from '@typescript/vfs';
+
+const formatHost: ts.FormatDiagnosticsHost = {
+  getCurrentDirectory: () => ts.sys.getCurrentDirectory(),
+  getNewLine: () => ts.sys.newLine,
+  getCanonicalFileName: ts.sys.useCaseSensitiveFileNames
+    ? f => f
+    : f => f.toLowerCase(),
+};
 
 interface PluginOptions {
+  dts?: boolean;
   outputTransformerPlugin?:
     | string
     | string[]
@@ -22,15 +33,73 @@ interface PluginOptions {
 const isCivet = (id: string) => /\.civet$/.test(id);
 const isCivetTranspiled = (id: string) => /\.civet\.(m?)(j|t)s(x?)$/.test(id);
 
-const removeNullChar = (id: string) => (id.startsWith('\0') ? id.slice(1) : id);
-
 export const civetPlugin = createUnplugin((options: PluginOptions = {}) => {
   const stripTypes = options.stripTypes ?? !options.outputTransformerPlugin;
-  const outExt = options.outputExtension ?? '.js';
+  const outExt = options.outputExtension ?? (stripTypes ? '.jsx' : '.tsx');
+  let fsMap: Map<string, string> = new Map();
+  let compilerOptions: any;
 
   return {
     name: 'unplugin-civet',
     enforce: 'pre',
+    async buildStart() {
+      if (options.dts) {
+        const configPath = ts.findConfigFile(process.cwd(), ts.sys.fileExists);
+
+        if (!configPath) {
+          throw new Error("Could not find 'tsconfig.json'");
+        }
+
+        const { config, error } = ts.readConfigFile(
+          configPath,
+          ts.sys.readFile
+        );
+
+        if (error) {
+          console.error(ts.formatDiagnostic(error, formatHost));
+          throw error;
+        }
+
+        const configContents = ts.parseJsonConfigFileContent(
+          config,
+          ts.sys,
+          process.cwd()
+        );
+
+        compilerOptions = {
+          ...configContents.options,
+          target: ts.ScriptTarget.ESNext,
+        };
+        fsMap = new Map();
+      }
+    },
+    buildEnd() {
+      if (options.dts) {
+        const system = tsvfs.createFSBackedSystem(fsMap, process.cwd(), ts);
+        const host = tsvfs.createVirtualCompilerHost(
+          system,
+          compilerOptions,
+          ts
+        );
+        const program = ts.createProgram({
+          rootNames: [...fsMap.keys()],
+          options: compilerOptions,
+          host: host.compilerHost,
+        });
+
+        const sourceFiles = program.getSourceFiles();
+
+        for (const sourceFile of sourceFiles) {
+          program.emit(sourceFile, (filePath, content) =>
+            this.emitFile({
+              source: content,
+              fileName: path.relative(process.cwd(), filePath),
+              type: 'asset',
+            })
+          );
+        }
+      }
+    },
     resolveId(id, importer) {
       if (/\0/.test(id)) return null;
       if (!isCivet(id)) return null;
@@ -69,6 +138,13 @@ export const civetPlugin = createUnplugin((options: PluginOptions = {}) => {
         transformed = await options.transformOutput(transformed.code, id);
 
       return transformed;
+    },
+    transform(code, id) {
+      if (!/\.civet\.tsx?$/.test(id)) return null;
+
+      if (options.dts) {
+        fsMap.set(path.resolve(process.cwd(), id), code);
+      }
     },
     vite: {
       config(config, { command }) {
