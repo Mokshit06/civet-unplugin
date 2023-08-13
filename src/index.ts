@@ -1,7 +1,6 @@
 import { TransformResult, createUnplugin } from 'unplugin';
 import civet from '@danielx/civet';
 import * as fs from 'fs';
-import { load as loadHTML } from 'cheerio';
 import path from 'path';
 
 interface PluginOptions {
@@ -33,14 +32,16 @@ export const civetPlugin = createUnplugin((options: PluginOptions = {}) => {
     name: 'unplugin-civet',
     enforce: 'pre',
     resolveId(id, importer) {
+      if (/\0/.test(id)) return null;
       if (!isCivet(id)) return null;
 
-      const absoluteId = path.isAbsolute(id)
-        ? id
-        : path.resolve(removeNullChar(path.dirname(importer ?? '')), id);
-      const absolutePath = absoluteId + outExt;
+      const relativeId = path.relative(
+        process.cwd(),
+        path.resolve(path.dirname(importer ?? ''), id)
+      );
+      const relativePath = relativeId + outExt;
 
-      return '\0' + absolutePath;
+      return relativePath;
     },
     loadInclude(id) {
       return isCivetTranspiled(id);
@@ -48,9 +49,7 @@ export const civetPlugin = createUnplugin((options: PluginOptions = {}) => {
     async load(id) {
       if (!isCivetTranspiled(id)) return null;
 
-      // remove \0 and .js/jsx
-      const filename = id.slice(1, -outExt.length);
-
+      const filename = path.resolve(process.cwd(), id.slice(0, -outExt.length));
       const code = await fs.promises.readFile(filename, 'utf-8');
 
       // Ideally this should have been done in a `transform` step
