@@ -15,15 +15,8 @@ const formatHost: ts.FormatDiagnosticsHost = {
 
 interface PluginOptions {
   dts?: boolean;
-  outputTransformerPlugin?:
-    | string
-    | string[]
-    | {
-        build?: string | string[];
-        serve?: string | string[];
-      };
   outputExtension?: string;
-  stripTypes?: boolean;
+  js?: boolean;
   transformOutput?: (
     code: string,
     id: string
@@ -34,9 +27,8 @@ const isCivet = (id: string) => /\.civet$/.test(id);
 const isCivetTranspiled = (id: string) => /\.civet\.(m?)(j|t)s(x?)$/.test(id);
 
 export const civetPlugin = createUnplugin((options: PluginOptions = {}) => {
-  const stripTypes =
-    options.stripTypes ?? !options.dts ?? !options.outputTransformerPlugin;
-  const outExt = options.outputExtension ?? (stripTypes ? '.jsx' : '.tsx');
+  const transpileToJS = options.js ?? !options.dts;
+  const outExt = options.outputExtension ?? (transpileToJS ? '.jsx' : '.tsx');
 
   let fsMap: Map<string, string> = new Map();
   let compilerOptions: any;
@@ -89,25 +81,19 @@ export const civetPlugin = createUnplugin((options: PluginOptions = {}) => {
           host: host.compilerHost,
         });
 
-        const sourceFiles = program.getSourceFiles();
-
-        console.log('\ngenerating');
-        // console.log([...fsMap.keys()]);
         for (const file of fsMap.keys()) {
           const sourceFile = program.getSourceFile(file)!;
-          console.log(file);
-          console.log(sourceFile.text);
           program.emit(
             sourceFile,
             (filePath, content) => {
-              console.log('EMITTING');
               this.emitFile({
                 source: content,
                 fileName: path.relative(process.cwd(), filePath),
                 type: 'asset',
               });
             },
-            undefined
+            undefined,
+            true
           );
         }
       }
@@ -141,7 +127,7 @@ export const civetPlugin = createUnplugin((options: PluginOptions = {}) => {
         code: civet.compile(code, {
           inlineMap: true,
           filename: id,
-          js: stripTypes,
+          js: transpileToJS,
         } as any) as string,
         map: null,
       };
