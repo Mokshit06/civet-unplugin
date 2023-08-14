@@ -1,5 +1,5 @@
 {
-  "name": "civet-unplugin",
+  "name": "unplugin-civet",
   "version": "1.0.0",
   "description": "Unplugin for Civet",
   "scripts": {
