@@ -76,7 +76,6 @@ module.exports = {
 
 ```ts
 interface PluginOptions {
-  // `unplugin-civet` also supports generating `.d.ts` type definition files from the civet source, which is useful for building libraries.
   dts?: boolean;
   outputExtension?: string;
   js?: boolean;
@@ -86,3 +85,8 @@ interface PluginOptions {
   ) => TransformResult | Promise<TransformResult>;
 }
 ```
+
+- `dts`: `unplugin-civet` also supports generating `.d.ts` type definition files from the civet source, which is useful for building libraries.
+- `outputExtension`: Output filename extension to use. Default: `.civet.jsx`, or `.civet.tsx` if `js` is `false`.
+- `js`: Whether to transpile to JS or TS.
+- `transformOutput`: Replace the `civet.compile` tranformer with a custom transformer. It gets passed the civet source and filename, and should return valid TS/JS code.
